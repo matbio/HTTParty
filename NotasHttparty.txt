@@ -1,0 +1,79 @@
+INSTRUÇÕES DE TRABALHO E COMANDOS EM HTTPARTY
+
+- Primeiro para começar um projeto em ruby executar o comando bundle init
+- Será gerado um arquivo chamado 'Gemfile' onde será centralizada as dependências do seu projeto
+- Adicionar a gem do rspec (gem "rspec") e a gem do httparty (gem "httparty")
+- Após alterar o Gemfile, executar o comando 'bundle install' para instalar as dependências.
+- Para iniciar o Rspec executar comando: rspec --init. serão geradas a pasta spec como spec_helper.rb e o arquivo .rspec 
+        NOTA: USAREMOS O RSPEC PARA AS VALIDAÇÕES COM O HTTPARTY
+- Para trabalhar com o HTTParty importa-lo no arquivo spec_helper.rb (require "httparty")
+
+- EXECUÇÃO DOS TESTES COMANDO: rspec -fd detalha melhor os testes
+
+- Para criação de uma massa de testes de simples refatoração, podemos usar a gem do factory_bot, permitirá centralizar a massa e facilitar a interação dos objetos.
+    - Inserir no arquivo Gemfile a gem "factory_bot"
+    - Instalar as dependências com o bundle install
+    - No arquivo spec_helper.rb, importar factory_bot (require "factory_bot"), importar também o arquivo de factories correspondente [require_relative "libs/factories"] e incluir dentro do Rspec.configure:
+        - config.include FactoryBot::Syntax::Methods #Faz com que o rspec reconheça o factory_bot
+    - Criar uma classe que servirá como modelo para a construção dos objetos que serão usados como massa de teste
+        - NOTA: é uma boa prática criar uma pasta models e nessa pasta criar as classes modelos supra-citadas
+        - NOTA: o factory_bot só cria objetos, para podermos convertê-los em json, precisamos primeiro transformar esse objeto em hash, como fazer:
+            class UserModel
+              attr_accessor :full_name, :email, :password
+
+              #Criar um método que transforma um objeto em hash
+              def to_hash
+                {
+                  full_name: @full_name,
+                  email: @email,
+                  password: @password,
+                }
+              end
+            end
+
+    - Após criação da classe modelo, deve-se gerar um arquivo factories.rb que irá comportar o molde dos objetos, exemplo
+    
+        require_relative "../models/user_model"         #Importar as classes modelos
+
+        FactoryBot.define do        #iniciar uma factory
+
+            factory :user, class: UserModel do      #Nomear a factory que será criada  e relacionar com a classe referente.
+               full_name { "Teste Post User" }
+               email { "teste@teste.com" }          #Estrutura do Objeto.
+               password { "abc123" }
+
+               after(:build) do |user|
+                 Database.new.delete_user(user.email)       #Um hook opcional, no caso para limpar o banco e manter a massa de testes persistente.
+               end
+            end
+        end
+    
+    - Para gerar a hash com a massa de teste:
+        @new_user = build(:user).to_hash #Executar o comando build(:nome da factory )
+
+    - Encapsulando os métodos httparty:
+        - Podemos executar uma requisição http diretamente pelo código principal:
+                @new_user = build(:user).to_hash
+                @result = HTTParty.post(
+                  "http://192.168.99.100:3001/user",
+                  body: @new_user.to_json,
+                  headers: {
+                    "Content-Type" => "application/json",
+                  },
+                )
+        - Ou podemos encapsular esse método da seguinte maneira:
+            - Criaremos uma classe que servirá como um serviço conectando as funções do HTTPARTY com a API a ser testada.
+                - É  uma boa prática criar uma pasta service e criar lá todos os serviços, esse arquivo conterá:
+                class ApiUser
+                    include HTTParty                                    #Importando as funções do HTTPARTY para utilizar na classe
+                    base_uri "http://localhost:3001"                    #Estabelecendo uma uri padrão
+                    headers "Content-Type" => "application/json"        #Definindo o headers padrões
+
+                    def self.user_post(user)
+                        post("/user", body: user.to_json)               #Criação de um método ue vai executar o post e converter o hash enviado como parâmetro para json
+                    end
+                end
+                - No arquivo spec_helper.rb importar o service correspondente [require_relative "services/user_service"]
+                - Executar o método encapsulado:
+                        @new_user = build(:user_wrong_email).to_hash
+                        @result = ApiUser.user_post(@new_user)
