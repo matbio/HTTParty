@@ -77,3 +77,28 @@ INSTRUÇÕES DE TRABALHO E COMANDOS EM HTTPARTY
                 - Executar o método encapsulado:
                         @new_user = build(:user_wrong_email).to_hash
                         @result = ApiUser.user_post(@new_user)
+
+  LET OU BEFORE?
+  - Uma boa alternativa para o before que executa as ações necessárias antes do teste em si é o LET, pois ele executa a ação durante a realização do teste, sendo bem mais performantico e menos verboso.
+    - Exemplo com Before:
+        before do
+            @new_user = build(:user).to_hash
+            @result = ApiUser.user_post(@new_user)
+        end
+
+    - Exemplo com Let:    
+        let(:result){ApiUser.user_post(build(:user).to_hash)}
+ 
+
+  - PARA A UTILIZAÇÃO DO FAKER NA CRIAÇÃO DE MASSAS DE TESTE DINÂMICAS
+    - Incluir a gem do faker no Gemfile (gem "faker", "1.9.6")
+    - Instalar as dependências com o bundle install
+    - Importar ele no arquivo da massa de teste (yaml, xml, factory, etc) com (require "faker")
+    - Para utilizar documentação https://github.com/faker-ruby/faker
+    
+ ----------- Geração de relatórios de teste Rspec ------------
+Geração de relatório em arquivo.html apontando para diretório:
+- rspec --format html --out .\RelatoriosRspec\report.html (Add -fd para detalhar também no terminal)
+Para rodar em servidores e em builds como jekins ou azure:
+- adicionar gem rspec_junit_formatter no arquivo Gemfile (Não esquecer de rodar o bundle install após para instalar a dependência)
+- rspec --format RspecJunitFormatter --out .\RelatoriosRspec\report.xml (Add -fd para detalhar também no terminal)

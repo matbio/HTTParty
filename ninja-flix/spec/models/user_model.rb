@@ -1,5 +1,5 @@
 class UserModel
-    attr_accessor :full_name, :email, :password
+    attr_accessor :id, :full_name, :email, :password
   
     #transforma um objeto em hash
     def to_hash
